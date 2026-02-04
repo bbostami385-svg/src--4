@@ -1,0 +1,4 @@
+const userPlans = {
+  "free_user": { timeLimit: 60 * 60 * 1000, startTime: null }, // ১ ঘন্টা = 60 মিনিট × 60 সেকেন্ড × 1000 ms
+  "premium_user": { timeLimit: Infinity, startTime: Date.now() }
+};

@@ -1,0 +1,50 @@
+// index.js
+import express from "express";
+import cors from "cors";
+import OpenAI from "openai";
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const openai = new OpenAI({
+  apiKey: "YOUR_OPENAI_API_KEY"
+});
+
+// Chat Endpoint
+app.post("/chat", async (req, res) => {
+  const { message } = req.body;
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [{ role: "user", content: message }]
+    });
+    res.json({ reply: response.choices[0].message.content });
+  } catch (err) {
+    res.status(500).json({ error: "Chat API error" });
+  }
+});
+
+// Image Endpoint
+app.post("/image", async (req, res) => {
+  const { prompt } = req.body;
+  try {
+    const image = await openai.images.generate({
+      model: "gpt-image-1",
+      prompt,
+      size: "1024x1024"
+    });
+    res.json({ url: image.data[0].url });
+  } catch (err) {
+    res.status(500).json({ error: "Image API error" });
+  }
+});
+
+// Video Endpoint
+app.post("/video", async (req, res) => {
+  const { prompt } = req.body;
+  // ভিডিও জেনারেশন API যদি থাকে সেই অনুযায়ী কোড
+  res.json({ url: "https://example.com/sample15s.mp4" });
+});
+
+app.listen(5000, () => console.log("Backend running on port 5000"));

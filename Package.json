@@ -1,0 +1,12 @@
+{
+  "name": "bayojid-ai-desktop",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^26.2.0",
+    "axios": "^1.6.0"
+  }
+}

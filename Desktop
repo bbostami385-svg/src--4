@@ -1,0 +1,6 @@
+let isPremium = false;
+
+document.getElementById("upgradeBtn").onclick = () => {
+  alert("Payment system coming soon 🚀");
+  // পরে এখানে real payment যুক্ত হবে
+};

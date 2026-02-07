@@ -1,22 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bayojid AI Chat</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #chatBox { width: 100%; height: 300px; border: 1px solid #ccc; padding: 10px; overflow-y: auto; }
-    #message { width: 80%; padding: 10px; }
-    #sendBtn { padding: 10px 20px; }
-  </style>
+  <title>Bayojid AI</title>
 </head>
 <body>
-  <h1>Bayojid AI Chat</h1>
-  <div id="chatBox"></div>
-  <input type="text" id="message" placeholder="Type your message...">
-  <button id="sendBtn">Send</button>
 
-  <script src="script.js"></script>
+<h2>Bayojid AI Chat</h2>
+
+<input id="msg" placeholder="Type message" />
+<button onclick="send()">Send</button>
+
+<p id="reply"></p>
+
+<script>
+async function send() {
+  const message = document.getElementById("msg").value;
+
+  const res = await fetch("https://src-4-a535.onrender.com/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message })
+  });
+
+  const data = await res.json();
+  document.getElementById("reply").innerText = data.reply;
+}
+</script>
+
 </body>
 </html>

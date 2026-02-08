@@ -1,31 +1,43 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Bayojid AI</title>
-</head>
-<body>
+<!-- Features Section -->
+<section id="features">
+  <h2>Features</h2>
+  <div class="feature-list">
+    <div class="feature-item">
+      <h3>💬 AI Chat</h3>
+      <p>Multilingual chat support in Bangla, English, and more.</p>
+    </div>
+    <div class="feature-item">
+      <h3>🖼️ Image Generation</h3>
+      <p>Create AI-generated images from text prompts (demo / unlimited preview).</p>
+    </div>
+    <div class="feature-item">
+      <h3>🎬 Short Video</h3>
+      <p>Generate short 15-second videos (demo).</p>
+    </div>
+    <div class="feature-item">
+      <h3>⚡ Fast & Simple Interface</h3>
+      <p>Clean design for easy interaction.</p>
+    </div>
+  </div>
 
-<h2>Bayojid AI Chat</h2>
-
-<input id="msg" placeholder="Type message" />
-<button onclick="send()">Send</button>
-
-<p id="reply"></p>
-
-<script>
-async function send() {
-  const message = document.getElementById("msg").value;
-
-  const res = await fetch("https://src-4-a535.onrender.com/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message })
-  });
-
-  const data = await res.json();
-  document.getElementById("reply").innerText = data.reply;
-}
-</script>
-
-</body>
-</html>
+  <!-- Free vs Premium Preview -->
+  <div class="pricing">
+    <h3>Free vs Premium</h3>
+    <div class="plan">
+      <h4>Free</h4>
+      <ul>
+        <li>AI Chat</li>
+        <li>Image demo</li>
+        <li>Video demo</li>
+      </ul>
+    </div>
+    <div class="plan">
+      <h4>Premium (Coming Soon)</h4>
+      <ul>
+        <li>Unlimited AI Chat</li>
+        <li>Advanced Image & Video Tools</li>
+        <li>Faster Responses</li>
+      </ul>
+    </div>
+  </div>
+</section>

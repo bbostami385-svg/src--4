@@ -1,0 +1,14 @@
+// Pseudo logic for limiting free users
+fun canUseAI(userId: String, usageToday: Int): Boolean {
+    val dailyLimit = 60 // 60 mins for free users
+    return usageToday < dailyLimit
+}
+
+// When user sends message
+fun onUserMessage(userId: String, message: String, usageToday: Int) {
+    if(canUseAI(userId, usageToday)){
+        // Call AI API & return response
+    } else {
+        println("Daily free limit reached! Prompt user to upgrade.")
+    }
+}

@@ -1,43 +1,33 @@
-<!-- Features Section -->
-<section id="features">
-  <h2>Features</h2>
-  <div class="feature-list">
-    <div class="feature-item">
-      <h3>💬 AI Chat</h3>
-      <p>Multilingual chat support in Bangla, English, and more.</p>
-    </div>
-    <div class="feature-item">
-      <h3>🖼️ Image Generation</h3>
-      <p>Create AI-generated images from text prompts (demo / unlimited preview).</p>
-    </div>
-    <div class="feature-item">
-      <h3>🎬 Short Video</h3>
-      <p>Generate short 15-second videos (demo).</p>
-    </div>
-    <div class="feature-item">
-      <h3>⚡ Fast & Simple Interface</h3>
-      <p>Clean design for easy interaction.</p>
-    </div>
-  </div>
+<!-- Video Generation Demo -->
+<section id="video-gen">
+  <h2>🎬 AI Video Generation</h2>
+  <p>Generate short AI videos from text prompts.</p>
 
-  <!-- Free vs Premium Preview -->
-  <div class="pricing">
-    <h3>Free vs Premium</h3>
-    <div class="plan">
-      <h4>Free</h4>
-      <ul>
-        <li>AI Chat</li>
-        <li>Image demo</li>
-        <li>Video demo</li>
-      </ul>
-    </div>
-    <div class="plan">
-      <h4>Premium (Coming Soon)</h4>
-      <ul>
-        <li>Unlimited AI Chat</li>
-        <li>Advanced Image & Video Tools</li>
-        <li>Faster Responses</li>
-      </ul>
-    </div>
-  </div>
+  <input type="text" id="video-prompt" placeholder="Describe your video..." />
+  <button onclick="generateVideo()">Generate Video</button>
+
+  <p style="color: green; margin-top: 10px;">
+    Free users: up to 15 seconds (Demo)
+  </p>
+
+  <div id="video-result" style="margin-top: 15px;"></div>
 </section>
+
+<script>
+  function generateVideo() {
+    const prompt = document.getElementById("video-prompt").value;
+    if (!prompt) {
+      alert("Please enter a video prompt");
+      return;
+    }
+
+    document.getElementById("video-result").innerHTML = `
+      <p>Video generated for: <b>${prompt}</b></p>
+      <video width="320" controls>
+        <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <p style="font-size: 12px; color: gray;">Demo video (15s preview)</p>
+    `;
+  }
+</script>

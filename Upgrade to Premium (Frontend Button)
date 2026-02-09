@@ -1,0 +1,15 @@
+function upgradePremium() {
+  const user = firebase.auth().currentUser;
+  if(!user) return;
+
+  fetch(`${API_BASE}/premium`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: user.email })
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert("Upgraded to Premium!");
+    checkPremiumStatus(data);
+  });
+}

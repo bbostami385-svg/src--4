@@ -11,6 +11,6 @@
     "mongoose": "^7.5.0",
     "dotenv": "^16.3.1",
   "body-parser": "^1.20.2"
-"openai": "^4.0.0"
+  "openai": "^4.0.0"
   }
 }

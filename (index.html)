@@ -1,12 +1,12 @@
 <script>
-const API_BASE = "https://src-4-a535.onrender.com/api";
+const API_BASE = "https://src-4-a535.onrender.com";
 
 function sendMessage() {
   const input = document.getElementById("chat-input");
   const message = input.value;
   if (!message) return;
 
-  fetch(`${API_BASE}/ai/chat`, {
+  fetch(`${API_BASE}/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message })

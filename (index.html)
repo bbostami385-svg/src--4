@@ -1,3 +1,10 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bayojid AI</title>
+</head>
+<body>
+
 <h2>Login / Signup</h2>
 
 <input type="email" id="email" placeholder="Enter Email">
@@ -8,29 +15,16 @@
 <button onclick="logout()">Logout</button>
 
 <p id="user-status">Not logged in</p>
-<script>
-const API_BASE = "https://src-4-a535.onrender.com";
 
-function sendMessage() {
-  const input = document.getElementById("chat-input");
-  const message = input.value;
-  if (!message) return;
+<hr>
 
-  fetch(`${API_BASE}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message })
-  })
-  .then(res => res.json())
-  .then(data => {
-    document.getElementById("chat-box").innerHTML += `
-      <div><b>You:</b> ${message}</div>
-      <div><b>AI:</b> ${data.reply}</div>
-    `;
-    input.value = "";
-  });
-}
-</script>
+<h2>AI Chat</h2>
+
+<input type="text" id="chat-input" placeholder="Type message">
+<button onclick="sendMessage()">Send</button>
+
+<div id="chat-box"></div>
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
@@ -47,8 +41,6 @@ function sendMessage() {
   };
 
   firebase.initializeApp(firebaseConfig);
-</script>
-<script>
   const auth = firebase.auth();
 
   function signup() {
@@ -56,9 +48,7 @@ function sendMessage() {
     const password = document.getElementById("password").value;
 
     auth.createUserWithEmailAndPassword(email, password)
-      .then(() => {
-        alert("Signup Successful ✅");
-      })
+      .then(() => alert("Signup Successful ✅"))
       .catch(error => alert(error.message));
   }
 
@@ -67,9 +57,7 @@ function sendMessage() {
     const password = document.getElementById("password").value;
 
     auth.signInWithEmailAndPassword(email, password)
-      .then(() => {
-        alert("Login Successful ✅");
-      })
+      .then(() => alert("Login Successful ✅"))
       .catch(error => alert(error.message));
   }
 
@@ -86,4 +74,34 @@ function sendMessage() {
         "Not logged in";
     }
   });
+
+  const API_BASE = "https://src-4-a535.onrender.com";
+
+  function sendMessage() {
+    if (!auth.currentUser) {
+      alert("Please login first ❌");
+      return;
+    }
+
+    const input = document.getElementById("chat-input");
+    const message = input.value;
+    if (!message) return;
+
+    fetch(`${API_BASE}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message })
+    })
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("chat-box").innerHTML += `
+        <div><b>You:</b> ${message}</div>
+        <div><b>AI:</b> ${data.reply}</div>
+      `;
+      input.value = "";
+    });
+  }
 </script>
+
+</body>
+</html>

@@ -21,3 +21,20 @@ function sendMessage() {
   });
 }
 </script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
+    authDomain: "bayojidaichat.firebaseapp.com",
+    projectId: "bayojidaichat",
+    storageBucket: "bayojidaichat.firebasestorage.app",
+    messagingSenderId: "982053349033",
+    appId: "1:982053349033:web:b89d9c88b4516293bfebb8",
+    measurementId: "G-NHBRHRLRQR"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+</script>

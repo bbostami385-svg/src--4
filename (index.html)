@@ -1,43 +1,49 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Bayojid AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body>
 
-<h2>Login / Signup</h2>
+<body style="font-family: Arial; text-align:center; padding:40px; background:#0f172a; color:white;">
 
-<input type="email" id="email" placeholder="Enter Email">
-<input type="password" id="password" placeholder="Enter Password">
+<h2>Bayojid AI</h2>
 
-<button onclick="signup()">Signup</button>
-<button onclick="login()">Login</button>
-<button onclick="logout()">Logout</button>
-
-<p id="user-status">Not logged in</p>
+<!-- Login Section -->
+<div>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+  <br><br>
+  <button onclick="signup()">Signup</button>
+  <button onclick="login()">Login</button>
+  <button onclick="logout()">Logout</button>
+  <p id="user-status">Not logged in</p>
+</div>
 
 <hr>
 
-<h2>AI Chat</h2>
+<!-- Chat Section -->
+<div>
+  <input type="text" id="chat-input" placeholder="Ask something..." style="width:60%;">
+  <button onclick="sendMessage()">Send</button>
+</div>
 
-<input type="text" id="chat-input" placeholder="Type message">
-<button onclick="sendMessage()">Send</button>
+<div id="chat-box" style="margin-top:20px;"></div>
 
-<div id="chat-box"></div>
-
-<!-- Firebase SDK -->
+<!-- Firebase SDK (v8 simple version) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
 <script>
+  // 🔹 তোমার Firebase project config এখানে বসাও
   const firebaseConfig = {
     apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
     authDomain: "bayojidaichat.firebaseapp.com",
     projectId: "bayojidaichat",
     storageBucket: "bayojidaichat.firebasestorage.app",
     messagingSenderId: "982053349033",
-    appId: "1:982053349033:web:b89d9c88b4516293bfebb8",
-    measurementId: "G-NHBRHRLRQR"
+    appId: "1:982053349033:web:b89d9c88b4516293bfebb8"
   };
 
   firebase.initializeApp(firebaseConfig);
@@ -49,7 +55,7 @@
 
     auth.createUserWithEmailAndPassword(email, password)
       .then(() => alert("Signup Successful ✅"))
-      .catch(error => alert(error.message));
+      .catch(err => alert(err.message));
   }
 
   function login() {
@@ -58,7 +64,7 @@
 
     auth.signInWithEmailAndPassword(email, password)
       .then(() => alert("Login Successful ✅"))
-      .catch(error => alert(error.message));
+      .catch(err => alert(err.message));
   }
 
   function logout() {
@@ -77,7 +83,7 @@
 
   const API_BASE = "https://src-4-a535.onrender.com";
 
-  function sendMessage() {
+  async function sendMessage() {
     if (!auth.currentUser) {
       alert("Please login first ❌");
       return;
@@ -87,19 +93,20 @@
     const message = input.value;
     if (!message) return;
 
-    fetch(`${API_BASE}/chat`, {
+    const res = await fetch(`${API_BASE}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message })
-    })
-    .then(res => res.json())
-    .then(data => {
-      document.getElementById("chat-box").innerHTML += `
-        <div><b>You:</b> ${message}</div>
-        <div><b>AI:</b> ${data.reply}</div>
-      `;
-      input.value = "";
     });
+
+    const data = await res.json();
+
+    document.getElementById("chat-box").innerHTML += `
+      <div><b>You:</b> ${message}</div>
+      <div><b>AI:</b> ${data.reply}</div>
+    `;
+
+    input.value = "";
   }
 </script>
 

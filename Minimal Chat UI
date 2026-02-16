@@ -1,3 +1,0 @@
-<div id="chat-box"></div>
-<input id="chat-input" placeholder="Ask something..." />
-<button onclick="sendMessage()">Send</button>

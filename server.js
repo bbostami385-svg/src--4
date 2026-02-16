@@ -1,53 +1,46 @@
-// server.js - Bayojid AI Backend (Future-Ready)
-
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config(); // Load .env for API keys etc.
+require("dotenv").config();
+const OpenAI = require("openai");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Root route
-app.get("/", (req, res) => {
-  res.send("Bayojid AI Server is Running ✅");
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Chat endpoint
+app.get("/", (req, res) => {
+  res.send("OpenAI Server Running ✅");
+});
+
 app.post("/chat", async (req, res) => {
+  const message = req.body.message;
+
+  if (!message) {
+    return res.json({ reply: "কিছু লিখুন।" });
+  }
+
   try {
-    const { message, username } = req.body;
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "You are a helpful AI assistant." },
+        { role: "user", content: message }
+      ],
+    });
 
-    if (!message) return res.status(400).json({ error: "No message provided" });
+    const reply = completion.choices[0].message.content;
 
-    // -----------------------------
-    // TODO: Replace demo reply with real AI API call
-    // Example for OpenAI GPT:
-    // const reply = await openai.createChatCompletion({
-    //   model: "gpt-4",
-    //   messages: [{ role: "user", content: message }]
-    // });
-    // const aiReply = reply.data.choices[0].message.content;
-    // -----------------------------
+    res.json({ reply });
 
-    // Demo reply
-    const aiReply = `আমি এখন demo mode এ আছি। তুমি বলেছ: "${message}"`;
-
-    res.json({ reply: aiReply });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+  } catch (error) {
+    console.error(error);
+    res.json({ reply: "API error হয়েছে। Key ঠিক আছে কিনা চেক করুন।" });
   }
 });
 
-// Optional: Premium check endpoint (future-ready)
-app.post("/premium-check", (req, res) => {
-  const { username } = req.body;
-  // TODO: Implement real premium logic
-  const isPremium = false; // Demo
-  res.json({ username, isPremium });
+app.listen(3000, () => {
+  console.log("Server started on port 3000 ✅");
 });
-
-// Port
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server started on port ${PORT} ✅`));

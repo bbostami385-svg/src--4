@@ -1,11 +1,11 @@
 // =======================================
-// Bayojid AI - FINAL ROOM SYSTEM VERSION
+// Bayojid AI - PREMIUM ROOM VERSION
 // =======================================
 
 const firebaseConfig = {
   apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
   authDomain: "bayojidaichat.firebaseapp.com",
-  projectId: "bayojidaichat",
+  projectId: "bayojidaichat.firebaseapp.com",
   storageBucket: "bayojidaichat.firebasestorage.app",
   messagingSenderId: "982053349033",
   appId: "1:982053349033:web:b89d9c88b4516293bfebb8"
@@ -15,7 +15,6 @@ firebase.initializeApp(firebaseConfig);
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-
 const API_BASE = "https://src-4-a535.onrender.com";
 
 let currentRoom = null;
@@ -39,10 +38,19 @@ function logout() {
   auth.signOut();
 }
 
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async user => {
   if (user) {
     document.getElementById("user-status").innerText =
       "Logged in as: " + user.email;
+
+    // Create user doc if not exists
+    const userRef = db.collection("users").doc(user.email);
+    const snap = await userRef.get();
+    if (!snap.exists) {
+      await userRef.set({
+        premium: false
+      });
+    }
 
     joinRoom("global-room");
   } else {
@@ -51,63 +59,72 @@ auth.onAuthStateChanged(user => {
   }
 });
 
-// ================= ROOM SYSTEM =================
+// ================= CREATE ROOM =================
 
 async function createRoom() {
-  if (!auth.currentUser) {
-    alert("Login first ❌");
-    return;
-  }
+  if (!auth.currentUser) return alert("Login first ❌");
 
   const roomId = prompt("Enter new Room ID:");
   if (!roomId) return;
 
-  const roomRef = db.collection("rooms").doc(roomId);
-  const roomDoc = await roomRef.get();
+  const isPremiumRoom = confirm("Make this a Premium Room?");
 
-  if (roomDoc.exists) {
-    alert("Room already exists!");
-    return;
-  }
+  const roomRef = db.collection("rooms").doc(roomId);
+  const snap = await roomRef.get();
+
+  if (snap.exists) return alert("Room already exists!");
 
   await roomRef.set({
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    createdBy: auth.currentUser.email
+    createdBy: auth.currentUser.email,
+    premium: isPremiumRoom
   });
 
-  alert("Room created successfully ✅");
+  alert("Room created ✅");
   joinRoom(roomId);
 }
 
+// ================= JOIN ROOM =================
+
 async function joinRoom(roomId) {
   if (!auth.currentUser) return;
+
+  const roomRef = db.collection("rooms").doc(roomId);
+  const snap = await roomRef.get();
+
+  if (!snap.exists) return alert("Room does not exist!");
+
+  const roomData = snap.data();
+
+  const userRef = db.collection("users").doc(auth.currentUser.email);
+  const userSnap = await userRef.get();
+  const userData = userSnap.data();
+
+  if (roomData.premium && !userData.premium) {
+    alert("This is a Premium Room 🔒 Upgrade required.");
+    return;
+  }
 
   currentRoom = roomId;
   document.getElementById("current-room").innerText =
     "Current Room: " + roomId;
 
-  const roomRef = db.collection("rooms").doc(roomId);
-  const roomDoc = await roomRef.get();
-
-  if (!roomDoc.exists) {
-    alert("Room does not exist!");
-    return;
-  }
-
   if (unsubscribe) unsubscribe();
 
-  unsubscribe = roomRef
-    .collection("messages")
+  unsubscribe = roomRef.collection("messages")
     .orderBy("timestamp")
     .onSnapshot(snapshot => {
+
       const chatBox = document.getElementById("chat-box");
       chatBox.innerHTML = "";
 
       snapshot.forEach(doc => {
         const data = doc.data();
-        chatBox.innerHTML += `
-          <div><b>${data.sender}:</b> ${data.text}</div>
-        `;
+        const div = document.createElement("div");
+        div.className = "message " +
+          (data.sender === auth.currentUser.email ? "user" : "ai");
+        div.innerText = data.sender + ": " + data.text;
+        chatBox.appendChild(div);
       });
 
       chatBox.scrollTop = chatBox.scrollHeight;
@@ -117,15 +134,7 @@ async function joinRoom(roomId) {
 // ================= SEND MESSAGE =================
 
 async function sendMessage() {
-  if (!auth.currentUser) {
-    alert("Login first ❌");
-    return;
-  }
-
-  if (!currentRoom) {
-    alert("No room joined ❌");
-    return;
-  }
+  if (!auth.currentUser || !currentRoom) return;
 
   const input = document.getElementById("chat-input");
   const message = input.value;
@@ -133,14 +142,12 @@ async function sendMessage() {
 
   const roomRef = db.collection("rooms").doc(currentRoom);
 
-  // Save user message
   await roomRef.collection("messages").add({
     sender: auth.currentUser.email,
     text: message,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  // AI Reply
   try {
     const res = await fetch(`${API_BASE}/chat`, {
       method: "POST",
@@ -157,11 +164,7 @@ async function sendMessage() {
     });
 
   } catch {
-    await roomRef.collection("messages").add({
-      sender: "System",
-      text: "Backend connection failed ❌",
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    console.log("Backend failed");
   }
 
   input.value = "";

@@ -32,7 +32,14 @@
 </div>
 
 <hr>
+<button onclick="createRoom()">Create Room</button>
+<input type="text" placeholder="Join Room ID" id="join-room-input">
+<button onclick="joinRoom(document.getElementById('join-room-input').value)">
+Join Room
+</button>
 
+<p id="current-room"></p>
+  
 <!-- Chat -->
 <div>
   <input type="text" id="chat-input" placeholder="Ask something..." style="width:60%;">

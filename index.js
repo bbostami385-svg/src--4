@@ -2,7 +2,7 @@
 // Bayojid AI - ADMIN PANEL VERSION
 // =======================================
 
-const ADMIN_EMAIL = "admin@bayojid.com"; // CHANGE IF NEEDED
+createdBy = auth.currentUser.email
 
 const firebaseConfig = {
   apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",

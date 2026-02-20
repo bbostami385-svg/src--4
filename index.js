@@ -1,6 +1,6 @@
-// ===============================
-// Bayojid AI - GROUP CHAT VERSION (FINAL)
-// ===============================
+// =======================================
+// Bayojid AI - FINAL ROOM SYSTEM VERSION
+// =======================================
 
 const firebaseConfig = {
   apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
@@ -19,10 +19,9 @@ const db = firebase.firestore();
 const API_BASE = "https://src-4-a535.onrender.com";
 
 let currentRoom = null;
+let unsubscribe = null;
 
-// ===============================
-// AUTH
-// ===============================
+// ================= AUTH =================
 
 function signup() {
   auth.createUserWithEmailAndPassword(emailInput().value, passwordInput().value)
@@ -42,32 +41,63 @@ function logout() {
 
 auth.onAuthStateChanged(user => {
   if (user) {
-    document.getElementById("user-status").innerText = "Logged in as: " + user.email;
-    joinRoom("global-room"); // default public room
+    document.getElementById("user-status").innerText =
+      "Logged in as: " + user.email;
+
+    joinRoom("global-room");
   } else {
     document.getElementById("user-status").innerText = "Not logged in";
     document.getElementById("chat-box").innerHTML = "";
   }
 });
 
-// ===============================
-// JOIN ROOM
-// ===============================
+// ================= ROOM SYSTEM =================
+
+async function createRoom() {
+  if (!auth.currentUser) {
+    alert("Login first ❌");
+    return;
+  }
+
+  const roomId = prompt("Enter new Room ID:");
+  if (!roomId) return;
+
+  const roomRef = db.collection("rooms").doc(roomId);
+  const roomDoc = await roomRef.get();
+
+  if (roomDoc.exists) {
+    alert("Room already exists!");
+    return;
+  }
+
+  await roomRef.set({
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    createdBy: auth.currentUser.email
+  });
+
+  alert("Room created successfully ✅");
+  joinRoom(roomId);
+}
 
 async function joinRoom(roomId) {
+  if (!auth.currentUser) return;
+
   currentRoom = roomId;
+  document.getElementById("current-room").innerText =
+    "Current Room: " + roomId;
 
   const roomRef = db.collection("rooms").doc(roomId);
   const roomDoc = await roomRef.get();
 
   if (!roomDoc.exists) {
-    await roomRef.set({
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdBy: auth.currentUser.email
-    });
+    alert("Room does not exist!");
+    return;
   }
 
-  roomRef.collection("messages")
+  if (unsubscribe) unsubscribe();
+
+  unsubscribe = roomRef
+    .collection("messages")
     .orderBy("timestamp")
     .onSnapshot(snapshot => {
       const chatBox = document.getElementById("chat-box");
@@ -84,12 +114,9 @@ async function joinRoom(roomId) {
     });
 }
 
-// ===============================
-// SEND MESSAGE
-// ===============================
+// ================= SEND MESSAGE =================
 
 async function sendMessage() {
-
   if (!auth.currentUser) {
     alert("Login first ❌");
     return;
@@ -113,36 +140,40 @@ async function sendMessage() {
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  // AI Reply (Demo backend)
-  const res = await fetch(`${API_BASE}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message })
-  });
+  // AI Reply
+  try {
+    const res = await fetch(`${API_BASE}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message })
+    });
 
-  const data = await res.json();
+    const data = await res.json();
 
-  // Save AI message
-  await roomRef.collection("messages").add({
-    sender: "Bayojid AI",
-    text: data.reply,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  });
+    await roomRef.collection("messages").add({
+      sender: "Bayojid AI",
+      text: data.reply,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+  } catch {
+    await roomRef.collection("messages").add({
+      sender: "System",
+      text: "Backend connection failed ❌",
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
 
   input.value = "";
 }
 
-// ===============================
-// THEME
-// ===============================
+// ================= THEME =================
 
 function toggleTheme() {
   document.body.classList.toggle("light");
 }
 
-// ===============================
-// HELPERS
-// ===============================
+// ================= HELPERS =================
 
 function emailInput() {
   return document.getElementById("email");

@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+/* ======= SAME YOUR DESIGN ======= */
 body {
   margin: 0;
   font-family: Arial, sans-serif;
@@ -28,10 +29,6 @@ body {
   flex-direction: column;
 }
 
-.sidebar h3 {
-  margin-top: 0;
-}
-
 .sidebar input, .sidebar button {
   width: 100%;
   margin-bottom: 10px;
@@ -50,7 +47,7 @@ body {
   background: #1d4ed8;
 }
 
-/* Main Chat Area */
+/* Main */
 .main {
   flex: 1;
   display: flex;
@@ -70,6 +67,8 @@ body {
   padding: 20px;
   overflow-y: auto;
   background: #0f172a;
+  display: flex;
+  flex-direction: column;
 }
 
 .message {
@@ -87,6 +86,12 @@ body {
 .ai {
   background: #334155;
   align-self: flex-start;
+}
+
+.typing-indicator {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-bottom: 10px;
 }
 
 .chat-input-area {
@@ -112,31 +117,10 @@ body {
   cursor: pointer;
 }
 
-.chat-input-area button:hover {
-  background: #1d4ed8;
-}
-
-.light {
-  background: #f5f5f5;
-  color: black;
-}
-
-.light .sidebar,
-.light .header,
-.light .chat-input-area {
-  background: #e2e8f0;
-}
-
-.light .chat-box {
-  background: #f5f5f5;
-}
-
-.light .ai {
-  background: #cbd5e1;
-}
-
-.light .user {
-  background: #3b82f6;
+video {
+  width: 45%;
+  margin: 5px;
+  background: black;
 }
 </style>
 </head>
@@ -167,21 +151,57 @@ body {
     <p id="current-room"></p>
     <p id="user-status">Not logged in</p>
 
+    <hr>
+
+    <!-- 🔎 Search History -->
+    <input type="text" id="search-input" placeholder="Search messages">
+    <button onclick="searchMessages()">Search</button>
+
+    <hr>
+
+    <!-- 🎥 Video Call -->
+    <button onclick="startCall()">Start Call</button>
+    <button onclick="joinCall()">Join Call</button>
+
+    <hr>
+
+    <!-- 👑 Admin Panel -->
+    <div id="admin-panel">
+      <h4>Admin Panel</h4>
+      <button onclick="promoteToAdmin()">Promote User</button>
+      <button onclick="removeAdmin()">Remove Admin</button>
+    </div>
+
+    <hr>
+
     <button onclick="toggleTheme()">Toggle Theme</button>
   </div>
 
-  <!-- Main Chat -->
+  <!-- Main -->
   <div class="main">
+
     <div class="header">
       <h3>Chat Room</h3>
     </div>
 
     <div class="chat-box" id="chat-box"></div>
 
+    <!-- Typing Indicator -->
+    <div id="typing-status" class="typing-indicator"></div>
+
     <div class="chat-input-area">
-      <input type="text" id="chat-input" placeholder="Type a message...">
+      <input type="text" id="chat-input" placeholder="Type a message..." 
+             oninput="setTyping(true)" 
+             onblur="setTyping(false)">
       <button onclick="sendMessage()">Send</button>
     </div>
+
+    <!-- Video Area -->
+    <div style="display:flex; justify-content:center;">
+      <video id="localVideo" autoplay muted></video>
+      <video id="remoteVideo" autoplay></video>
+    </div>
+
   </div>
 
 </div>
@@ -191,7 +211,11 @@ body {
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
+<!-- JS Files -->
 <script src="index.js"></script>
+<script src="index_searchHistory.js"></script>
+<script src="index_typingIndicator.js"></script>
+<script src="index_videoSignaling.js"></script>
 
 </body>
 </html>

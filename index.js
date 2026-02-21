@@ -1,191 +1,240 @@
-// =======================================
-// Bayojid AI - ROOM BASED ADMIN SYSTEM
-// =======================================
+// =====================================================
+// BAYOJID AI - Persistent Room System (Firestore)
+// =====================================================
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
-  authDomain: "bayojidaichat.firebaseapp.com",
-  projectId: "bayojidaichat",
-  storageBucket: "bayojidaichat.firebasestorage.app",
-  messagingSenderId: "982053349033",
-  appId: "1:982053349033:web:b89d9c88b4516293bfebb8"
-};
+const express = require("express");
+const cors = require("cors");
+require("dotenv").config();
 
-firebase.initializeApp(firebaseConfig);
+const admin = require("firebase-admin");
 
-const auth = firebase.auth();
-const db = firebase.firestore();
-const API_BASE = "https://src-4-a535.onrender.com";
+const serviceAccount = require("./serviceAccountKey.json");
 
-let currentRoom = null;
-let unsubscribe = null;
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
-// ================= AUTH =================
+const db = admin.firestore();
 
-function signup() {
-  auth.createUserWithEmailAndPassword(emailInput().value, passwordInput().value)
-    .then(() => alert("Signup Successful ✅"))
-    .catch(err => alert(err.message));
-}
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-function login() {
-  auth.signInWithEmailAndPassword(emailInput().value, passwordInput().value)
-    .then(() => alert("Login Successful ✅"))
-    .catch(err => alert(err.message));
-}
+// =====================================================
+// CREATE ROOM
+// =====================================================
+app.post("/room/create", async (req, res) => {
+  try {
+    const { roomId, creator } = req.body;
 
-function logout() {
-  auth.signOut();
-}
+    const roomRef = db.collection("rooms").doc(roomId);
+    const snap = await roomRef.get();
 
-auth.onAuthStateChanged(user => {
-  if (user) {
-    document.getElementById("user-status").innerText =
-      "Logged in as: " + user.email;
-  } else {
-    document.getElementById("chat-box").innerHTML = "";
-    document.getElementById("admin-panel").innerHTML = "";
+    if (snap.exists) {
+      return res.status(400).json({ error: "Room already exists" });
+    }
+
+    await roomRef.set({
+      createdBy: creator,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      premium: false,
+      admins: [creator],
+      kickedUsers: []
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// ================= ROOM SYSTEM =================
+// =====================================================
+// JOIN ROOM
+// =====================================================
+app.post("/room/join", async (req, res) => {
+  try {
+    const { roomId, user } = req.body;
 
-async function createRoom() {
-  if (!auth.currentUser) return alert("Login first ❌");
+    const roomRef = db.collection("rooms").doc(roomId);
+    const snap = await roomRef.get();
 
-  const roomId = prompt("Enter Room ID:");
-  if (!roomId) return;
+    if (!snap.exists)
+      return res.status(404).json({ error: "Room not found" });
 
-  await db.collection("rooms").doc(roomId).set({
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    createdBy: auth.currentUser.email,
-    premium: false
-  });
+    const data = snap.data();
 
-  joinRoom(roomId);
-}
+    if (data.kickedUsers.includes(user))
+      return res.status(403).json({ error: "You are kicked" });
 
-async function joinRoom(roomId) {
-  if (!auth.currentUser) return;
+    res.json({ success: true, room: data });
 
-  const roomRef = db.collection("rooms").doc(roomId);
-  const snap = await roomRef.get();
-
-  if (!snap.exists) return alert("Room not found");
-
-  const roomData = snap.data();
-
-  currentRoom = roomId;
-
-  document.getElementById("current-room").innerText =
-    "Current Room: " + roomId;
-
-  loadRoomAdminPanel(roomData);
-
-  if (unsubscribe) unsubscribe();
-
-  unsubscribe = roomRef.collection("messages")
-    .orderBy("timestamp")
-    .onSnapshot(snapshot => {
-
-      const chatBox = document.getElementById("chat-box");
-      chatBox.innerHTML = "";
-
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        const div = document.createElement("div");
-        div.className = "message " +
-          (data.sender === auth.currentUser.email ? "user" : "ai");
-        div.innerText = data.sender + ": " + data.text;
-        chatBox.appendChild(div);
-      });
-
-      chatBox.scrollTop = chatBox.scrollHeight;
-    });
-}
-
-// ================= ROOM ADMIN PANEL =================
-
-function loadRoomAdminPanel(roomData) {
-
-  const panel = document.getElementById("admin-panel");
-
-  if (roomData.createdBy !== auth.currentUser.email) {
-    panel.innerHTML = "";
-    return;
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
+});
 
-  panel.innerHTML = `
-    <h3>Room Admin Panel</h3>
-    <button onclick="deleteRoom()">Delete Room</button>
-    <button onclick="togglePremiumRoom()">Toggle Premium Room</button>
-  `;
-}
+// =====================================================
+// ADD ADMIN
+// =====================================================
+app.post("/room/admin/add", async (req, res) => {
+  try {
+    const { roomId, currentAdmin, newAdmin } = req.body;
 
-async function deleteRoom() {
-  if (!currentRoom) return;
+    const roomRef = db.collection("rooms").doc(roomId);
+    const snap = await roomRef.get();
 
-  await db.collection("rooms").doc(currentRoom).delete();
+    if (!snap.exists)
+      return res.status(404).json({ error: "Room not found" });
 
-  alert("Room deleted");
-  document.getElementById("chat-box").innerHTML = "";
-  document.getElementById("admin-panel").innerHTML = "";
-  currentRoom = null;
-}
+    const data = snap.data();
 
-async function togglePremiumRoom() {
-  const roomRef = db.collection("rooms").doc(currentRoom);
-  const snap = await roomRef.get();
+    if (!data.admins.includes(currentAdmin))
+      return res.status(403).json({ error: "Not authorized" });
 
-  const currentStatus = snap.data().premium;
+    await roomRef.update({
+      admins: admin.firestore.FieldValue.arrayUnion(newAdmin)
+    });
 
-  await roomRef.update({
-    premium: !currentStatus
-  });
+    res.json({ success: true });
 
-  alert("Premium status changed");
-}
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-// ================= SEND MESSAGE =================
+// =====================================================
+// REMOVE ADMIN
+// =====================================================
+app.post("/room/admin/remove", async (req, res) => {
+  try {
+    const { roomId, currentAdmin, targetAdmin } = req.body;
 
-async function sendMessage() {
-  if (!auth.currentUser || !currentRoom) return;
+    const roomRef = db.collection("rooms").doc(roomId);
+    const snap = await roomRef.get();
 
-  const input = document.getElementById("chat-input");
-  const message = input.value;
-  if (!message) return;
+    if (!snap.exists)
+      return res.status(404).json({ error: "Room not found" });
 
-  const roomRef = db.collection("rooms").doc(currentRoom);
+    const data = snap.data();
 
-  await roomRef.collection("messages").add({
-    sender: auth.currentUser.email,
-    text: message,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  });
+    if (!data.admins.includes(currentAdmin))
+      return res.status(403).json({ error: "Not authorized" });
 
-  const res = await fetch(`${API_BASE}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message })
-  });
+    if (targetAdmin === data.createdBy)
+      return res.status(400).json({ error: "Cannot remove creator" });
 
-  const data = await res.json();
+    await roomRef.update({
+      admins: admin.firestore.FieldValue.arrayRemove(targetAdmin)
+    });
 
-  await roomRef.collection("messages").add({
-    sender: "Bayojid AI",
-    text: data.reply,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  });
+    res.json({ success: true });
 
-  input.value = "";
-}
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-// ================= HELPERS =================
+// =====================================================
+// KICK USER
+// =====================================================
+app.post("/room/user/kick", async (req, res) => {
+  try {
+    const { roomId, adminUser, targetUser } = req.body;
 
-function emailInput() {
-  return document.getElementById("email");
-}
+    const roomRef = db.collection("rooms").doc(roomId);
+    const snap = await roomRef.get();
 
-function passwordInput() {
-  return document.getElementById("password");
-}
+    if (!snap.exists)
+      return res.status(404).json({ error: "Room not found" });
+
+    const data = snap.data();
+
+    if (!data.admins.includes(adminUser))
+      return res.status(403).json({ error: "Not authorized" });
+
+    await roomRef.update({
+      kickedUsers: admin.firestore.FieldValue.arrayUnion(targetUser)
+    });
+
+    res.json({ success: true });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =====================================================
+// SEND MESSAGE (Persistent History)
+// =====================================================
+app.post("/chat", async (req, res) => {
+  try {
+    const { roomId, sender, message } = req.body;
+
+    const roomRef = db.collection("rooms").doc(roomId);
+    const snap = await roomRef.get();
+
+    if (!snap.exists)
+      return res.status(404).json({ error: "Room not found" });
+
+    const data = snap.data();
+
+    if (data.kickedUsers.includes(sender))
+      return res.status(403).json({ error: "You are kicked" });
+
+    // Save user message
+    await roomRef.collection("messages").add({
+      sender,
+      text: message,
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    // AI Response (Replace this function later)
+    const aiReply = `Bayojid AI: ${message}`;
+
+    await roomRef.collection("messages").add({
+      sender: "AI",
+      text: aiReply,
+      timestamp: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.json({ reply: aiReply });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =====================================================
+// GET CHAT HISTORY
+// =====================================================
+app.get("/room/:roomId/messages", async (req, res) => {
+  try {
+    const { roomId } = req.params;
+
+    const snapshot = await db.collection("rooms")
+      .doc(roomId)
+      .collection("messages")
+      .orderBy("timestamp")
+      .get();
+
+    const messages = [];
+
+    snapshot.forEach(doc => {
+      messages.push(doc.data());
+    });
+
+    res.json(messages);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =====================================================
+// START SERVER
+// =====================================================
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Bayojid AI Server running on port ${PORT}`);
+});

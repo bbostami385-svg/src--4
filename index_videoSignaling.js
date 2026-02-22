@@ -1,28 +1,19 @@
 // =======================================
 // index_videoSignaling.js - Bayojid AI Backend
-// Step 4: Video Meeting Signaling
+// Step 4: Video Meeting Signaling (Demo + Real AI)
 // =======================================
 
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const { Configuration, OpenAIApi } = require("openai");
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// =============== OpenAI Setup ===============
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
-
-// =============== Firebase Setup ===============
 const firebase = require("firebase/compat/app");
 require("firebase/compat/auth");
 require("firebase/compat/firestore");
 
+// ===============================
+// Firebase Config
+// ===============================
 const firebaseConfig = {
   apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
   authDomain: "bayojidaichat.firebaseapp.com",
@@ -36,13 +27,37 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// ===============================
+// OpenAI Setup
+// ===============================
+let openai = null;
+let isRealAI = false;
+
+if (process.env.OPENAI_API_KEY) {
+  const configuration = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
+  openai = new OpenAIApi(configuration);
+  isRealAI = true;
+  console.log("🚀 Real OpenAI GPT enabled");
+} else {
+  console.log("⚠ Demo mode: OpenAI API Key not found");
+}
+
+// ===============================
+// Express Setup
+// ===============================
+const app = express();
+app.use(cors());
+app.use(express.json());
+
 let currentRoom = null;
 
-// =============== ROUTES ===============
+// ===============================
+// Routes
+// ===============================
 
 // Root
 app.get("/", (req, res) => {
-  res.send("Bayojid AI Server with Video Signaling ✅");
+  res.send(`Bayojid AI Server with Video Signaling ✅ | Mode: ${isRealAI ? "Real AI" : "Demo"}`);
 });
 
 // ================= CHAT ROUTE =================
@@ -51,13 +66,19 @@ app.post("/chat", async (req, res) => {
     const { message, username } = req.body;
     if (!message) return res.status(400).json({ error: "No message provided" });
 
-    // Call OpenAI
-    const response = await openai.createChatCompletion({
-      model: "gpt-4",
-      messages: [{ role: "user", content: message }]
-    });
+    let aiReply = "";
 
-    const aiReply = response.data.choices[0].message.content;
+    if (isRealAI) {
+      const completion = await openai.createChatCompletion({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: message }],
+        temperature: 0.7,
+        max_tokens: 500
+      });
+      aiReply = completion.data.choices[0].message.content;
+    } else {
+      aiReply = `Demo Mode: তুমি লিখেছ "${message}"`;
+    }
 
     // Save chat
     if (currentRoom) {
@@ -72,6 +93,7 @@ app.post("/chat", async (req, res) => {
     }
 
     res.json({ reply: aiReply });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
@@ -79,7 +101,7 @@ app.post("/chat", async (req, res) => {
 });
 
 // ================= VIDEO MEETING SIGNALING =================
-// Simple signaling via Firestore
+// Start Call
 app.post("/start-call", async (req, res) => {
   try {
     const { callId, username } = req.body;
@@ -97,6 +119,7 @@ app.post("/start-call", async (req, res) => {
   }
 });
 
+// Signal Exchange
 app.post("/signal", async (req, res) => {
   try {
     const { callId, signalData, username } = req.body;
@@ -118,7 +141,7 @@ app.post("/signal", async (req, res) => {
   }
 });
 
-// ================= GET SIGNALS =================
+// Get Signals
 app.get("/signals/:callId", async (req, res) => {
   try {
     const { callId } = req.params;
@@ -130,9 +153,7 @@ app.get("/signals/:callId", async (req, res) => {
       .get();
 
     const signals = [];
-    signalsSnap.forEach(doc => {
-      signals.push(doc.data());
-    });
+    signalsSnap.forEach(doc => signals.push(doc.data()));
 
     res.json({ signals });
   } catch (err) {
@@ -141,6 +162,6 @@ app.get("/signals/:callId", async (req, res) => {
   }
 });
 
-// ================= SERVER =================
+// ================= SERVER START =================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server started on port ${PORT} ✅`));
+app.listen(PORT, () => console.log(`Server started on port ${PORT} ✅ | Mode: ${isRealAI ? "Real AI" : "Demo"}`));

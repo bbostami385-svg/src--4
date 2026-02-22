@@ -1,5 +1,6 @@
 // ========================================
-// Bayojid AI - REAL OpenAI Production Backend
+// Bayojid AI - Final Production Backend
+// Real AI + Fallback + Firestore + Rate Limit
 // ========================================
 
 const express = require("express");
@@ -27,89 +28,10 @@ app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
 // ===============================
-// OpenAI Init (Real)
-// ===============================
-if (!process.env.OPENAI_API_KEY) {
-  console.warn("⚠ OPENAI_API_KEY not found in .env");
-}
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
-
-// ===============================
-// Health Check
-// ===============================
-app.get("/", (req, res) => {
-  res.send("🔥 Bayojid AI Real Server Running");
-});
-
-// ===============================
-// REAL AI CHAT ENDPOINT
-// ===============================
-app.post("/chat", async (req, res) => {
-  try {
-    const { message, history } = req.body;
-
-    if (!message) {
-      return res.status(400).json({ error: "Message required" });
-    }
-
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({
-        error: "OpenAI API Key not configured"
-      });
-    }
-
-    // Conversation memory support
-    const messages = [
-      {
-        role: "system",
-        content:
-          "You are Bayojid AI, a smart, helpful, and respectful assistant."
-      }
-    ];
-
-    if (Array.isArray(history)) {
-      history.forEach(msg => {
-        messages.push({
-          role: msg.role,
-          content: msg.content
-        });
-      });
-    }
-
-    messages.push({
-      role: "user",
-      content: message
-    });
-
-    // 🔥 REAL GPT CALL
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 500
-    });
-
-    const reply = completion.choices[0].message.content;
-
-    res.json({ reply });
-
-  } catch (error) {
-    console.error("AI Error:", error);
-
-    res.status(500).json({
-      error: "AI processing failed",
-      details: error.message
-    });
-  }
-});
-
-// ===============================
-// BASIC RATE LIMIT (Simple Protection)
+// Basic Rate Limit (Before Routes)
 // ===============================
 const rateLimit = {};
+
 app.use("/chat", (req, res, next) => {
   const ip = req.ip;
   const now = Date.now();
@@ -133,7 +55,100 @@ app.use("/chat", (req, res, next) => {
 });
 
 // ===============================
-// Server Start
+// OpenAI Init
+// ===============================
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// ===============================
+// Health Check
+// ===============================
+app.get("/", (req, res) => {
+  res.send("🔥 Bayojid AI Production Server Running");
+});
+
+// ===============================
+// CHAT ENDPOINT (Real + Fallback)
+// ===============================
+app.post("/chat", async (req, res) => {
+  try {
+    const { message, history, userId } = req.body;
+
+    if (!message || !userId) {
+      return res.status(400).json({
+        error: "Message and userId required"
+      });
+    }
+
+    let reply;
+
+    try {
+      // Prepare conversation
+      const messages = [
+        {
+          role: "system",
+          content:
+            "You are Bayojid AI, a smart, respectful, helpful assistant."
+        }
+      ];
+
+      if (Array.isArray(history)) {
+        history.forEach(msg => {
+          messages.push({
+            role: msg.role,
+            content: msg.content
+          });
+        });
+      }
+
+      messages.push({
+        role: "user",
+        content: message
+      });
+
+      // 🔥 Try Real OpenAI
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 500
+      });
+
+      reply = completion.choices[0].message.content;
+
+      console.log("✅ Real OpenAI Used");
+
+    } catch (aiError) {
+
+      console.log("⚠ OpenAI failed → Demo Mode Activated");
+
+      // 🔥 Fallback Demo Reply
+      reply = `Demo Mode: তুমি বলেছ "${message}"`;
+    }
+
+    // 🔥 Always Save Conversation
+    await db.collection("conversations")
+      .doc(userId)
+      .collection("messages")
+      .add({
+        userMessage: message,
+        aiReply: reply,
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+    res.json({ reply });
+
+  } catch (error) {
+    console.error("SERVER ERROR:", error);
+    res.status(500).json({
+      error: "Server processing failed"
+    });
+  }
+});
+
+// ===============================
+// Start Server
 // ===============================
 const PORT = process.env.PORT || 3000;
 

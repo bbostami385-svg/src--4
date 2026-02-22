@@ -1,28 +1,19 @@
 // =======================================
 // index_typingIndicator.js - Bayojid AI Backend
-// Step 3: Typing Indicator Backend
+// Step 3: Typing Indicator Backend (Demo + Real AI)
 // =======================================
 
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const { Configuration, OpenAIApi } = require("openai");
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// =============== OpenAI Setup ===============
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
-
-// =============== Firebase Setup ===============
 const firebase = require("firebase/compat/app");
 require("firebase/compat/auth");
 require("firebase/compat/firestore");
 
+// ===============================
+// Firebase Config
+// ===============================
 const firebaseConfig = {
   apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
   authDomain: "bayojidaichat.firebaseapp.com",
@@ -36,13 +27,37 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// ===============================
+// OpenAI Setup
+// ===============================
+let openai = null;
+let isRealAI = false;
+
+if (process.env.OPENAI_API_KEY) {
+  const configuration = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
+  openai = new OpenAIApi(configuration);
+  isRealAI = true;
+  console.log("🚀 Real OpenAI GPT enabled");
+} else {
+  console.log("⚠ Demo mode: OpenAI API Key not found");
+}
+
+// ===============================
+// Express Setup
+// ===============================
+const app = express();
+app.use(cors());
+app.use(express.json());
+
 let currentRoom = null;
 
-// =============== ROUTES ===============
+// ===============================
+// Routes
+// ===============================
 
 // Root
 app.get("/", (req, res) => {
-  res.send("Bayojid AI Server with Typing Indicator ✅");
+  res.send(`Bayojid AI Server with Typing Indicator ✅ | Mode: ${isRealAI ? "Real AI" : "Demo"}`);
 });
 
 // ================= CHAT ROUTE =================
@@ -51,7 +66,7 @@ app.post("/chat", async (req, res) => {
     const { message, username } = req.body;
     if (!message) return res.status(400).json({ error: "No message provided" });
 
-    // Notify typing start
+    // Set typing true
     if (currentRoom) {
       await db.collection("rooms").doc(currentRoom)
         .collection("typing")
@@ -59,13 +74,19 @@ app.post("/chat", async (req, res) => {
         .set({ typing: true, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
     }
 
-    // Call OpenAI
-    const response = await openai.createChatCompletion({
-      model: "gpt-4",
-      messages: [{ role: "user", content: message }]
-    });
+    let aiReply = "";
 
-    const aiReply = response.data.choices[0].message.content;
+    if (isRealAI) {
+      const completion = await openai.createChatCompletion({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: message }],
+        temperature: 0.7,
+        max_tokens: 500
+      });
+      aiReply = completion.data.choices[0].message.content;
+    } else {
+      aiReply = `Demo Mode: তুমি লিখেছ "${message}"`;
+    }
 
     // Save chat
     if (currentRoom) {
@@ -78,7 +99,7 @@ app.post("/chat", async (req, res) => {
           timestamp: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-      // Notify typing end
+      // Set typing false
       await db.collection("rooms").doc(currentRoom)
         .collection("typing")
         .doc(username || "Anonymous")
@@ -86,13 +107,14 @@ app.post("/chat", async (req, res) => {
     }
 
     res.json({ reply: aiReply });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// ================= CHECK TYPING STATUS =================
+// ================= GET TYPING STATUS =================
 app.get("/typing-status", async (req, res) => {
   try {
     if (!currentRoom) return res.status(400).json({ error: "No active room" });
@@ -108,12 +130,13 @@ app.get("/typing-status", async (req, res) => {
     });
 
     res.json({ typingUsers });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ================= SERVER =================
+// ================= SERVER START =================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server started on port ${PORT} ✅`));
+app.listen(PORT, () => console.log(`Server started on port ${PORT} ✅ | Mode: ${isRealAI ? "Real AI" : "Demo"}`));

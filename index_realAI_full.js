@@ -1,28 +1,18 @@
 // =======================================
-// index_realAI_full.js - Bayojid AI Backend (Future-Ready)
-// Step 1: Real OpenAI Integration
+// index_realAI_full.js - Bayojid AI Backend (Demo + Real AI Ready)
 // =======================================
 
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config(); // Load OpenAI API key from .env
+require("dotenv").config();
 const { Configuration, OpenAIApi } = require("openai");
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// =============== OpenAI Setup ===============
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY, // <-- শুধু এখানে API key বসাতে হবে
-});
-const openai = new OpenAIApi(configuration);
-
-// =============== Firebase Setup ===============
 const firebase = require("firebase/compat/app");
 require("firebase/compat/auth");
 require("firebase/compat/firestore");
 
+// ===============================
+// Firebase Config
+// ===============================
 const firebaseConfig = {
   apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
   authDomain: "bayojidaichat.firebaseapp.com",
@@ -33,22 +23,43 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// =============== Global Variables ===============
+// ===============================
+// OpenAI Setup
+// ===============================
+let openai = null;
+let isRealAI = false;
+
+if (process.env.OPENAI_API_KEY) {
+  const configuration = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
+  openai = new OpenAIApi(configuration);
+  isRealAI = true;
+  console.log("🚀 Real OpenAI GPT enabled");
+} else {
+  console.log("⚠ Demo mode: OpenAI API Key not found");
+}
+
+// ===============================
+// Express Setup
+// ===============================
+const app = express();
+app.use(cors());
+app.use(express.json());
+
 let currentRoom = null;
-let unsubscribe = null;
 
-// =============== ROUTES ===============
+// ===============================
+// Routes
+// ===============================
 
-// Root route
+// Root
 app.get("/", (req, res) => {
-  res.send("Bayojid AI Server is Running ✅");
+  res.send(`Bayojid AI Server Running ✅ | Mode: ${isRealAI ? "Real AI" : "Demo"}`);
 });
 
-// ================= AUTH ROUTES =================
+// ================= AUTH =================
 app.post("/signup", async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -81,16 +92,15 @@ app.post("/logout", async (req, res) => {
 // ================= ROOM SYSTEM =================
 app.post("/create-room", async (req, res) => {
   if (!auth.currentUser) return res.status(401).json({ error: "Login first ❌" });
-
   const { roomId } = req.body;
   if (!roomId) return res.status(400).json({ error: "Room ID required" });
-
   try {
     await db.collection("rooms").doc(roomId).set({
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       createdBy: auth.currentUser.email,
       premium: false
     });
+    currentRoom = roomId;
     res.json({ message: `Room ${roomId} created ✅` });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -100,12 +110,9 @@ app.post("/create-room", async (req, res) => {
 app.post("/join-room", async (req, res) => {
   const { roomId } = req.body;
   if (!roomId) return res.status(400).json({ error: "Room ID required" });
-
   try {
-    const roomRef = db.collection("rooms").doc(roomId);
-    const snap = await roomRef.get();
+    const snap = await db.collection("rooms").doc(roomId).get();
     if (!snap.exists) return res.status(404).json({ error: "Room not found" });
-
     currentRoom = roomId;
     res.json({ message: `Joined Room: ${roomId} ✅`, roomData: snap.data() });
   } catch (err) {
@@ -115,7 +122,6 @@ app.post("/join-room", async (req, res) => {
 
 app.post("/delete-room", async (req, res) => {
   if (!currentRoom) return res.status(400).json({ error: "No active room" });
-
   try {
     await db.collection("rooms").doc(currentRoom).delete();
     currentRoom = null;
@@ -127,7 +133,6 @@ app.post("/delete-room", async (req, res) => {
 
 app.post("/toggle-premium", async (req, res) => {
   if (!currentRoom) return res.status(400).json({ error: "No active room" });
-
   try {
     const roomRef = db.collection("rooms").doc(currentRoom);
     const snap = await roomRef.get();
@@ -139,21 +144,29 @@ app.post("/toggle-premium", async (req, res) => {
   }
 });
 
-// ================= CHAT ROUTE (OpenAI) =================
+// ================= CHAT =================
 app.post("/chat", async (req, res) => {
   try {
     const { message, username } = req.body;
     if (!message) return res.status(400).json({ error: "No message provided" });
 
-    // Call OpenAI GPT
-    const response = await openai.createChatCompletion({
-      model: "gpt-4",
-      messages: [{ role: "user", content: message }]
-    });
+    let aiReply = "";
 
-    const aiReply = response.data.choices[0].message.content;
+    if (isRealAI) {
+      // Real GPT
+      const completion = await openai.createChatCompletion({
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: message }],
+        temperature: 0.7,
+        max_tokens: 500
+      });
+      aiReply = completion.data.choices[0].message.content;
+    } else {
+      // Demo mode reply
+      aiReply = `Demo Mode: তুমি বলেছ "${message}"`;
+    }
 
-    // Save chat to Firebase if room exists
+    // Save chat to Firestore
     if (currentRoom) {
       await db.collection("rooms").doc(currentRoom)
         .collection("messages")
@@ -179,11 +192,6 @@ app.post("/premium-check", (req, res) => {
   res.json({ username, isPremium });
 });
 
-// ================= TODOs =================
-// TODO: Step 2 - Add Searchable Chat History
-// TODO: Step 3 - Add Typing Indicator Backend
-// TODO: Step 4 - Add Video Meeting Signaling
-
 // ================= SERVER START =================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server started on port ${PORT} ✅`));
+app.listen(PORT, () => console.log(`Server started on port ${PORT} ✅ | Mode: ${isRealAI ? "Real AI" : "Demo"}`));

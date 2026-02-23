@@ -1,11 +1,12 @@
-// ===============================
-// Bayojid AI - FINAL Professional Server
-// ===============================
+// ============================================
+// Bayojid AI - Complete Professional Backend
+// ============================================
 
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const { OpenAI } = require("openai");
+
 const firebase = require("firebase/compat/app");
 require("firebase/compat/auth");
 require("firebase/compat/firestore");
@@ -14,9 +15,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ===============================
+// ============================================
 // Firebase Init
-// ===============================
+// ============================================
+
 const firebaseConfig = {
   apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
   authDomain: "bayojidaichat.firebaseapp.com",
@@ -30,23 +32,33 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-// ===============================
-// OpenAI Setup (Auto Demo/Real)
-// ===============================
+// ============================================
+// OpenAI Setup (Auto Demo / Real)
+// ============================================
+
 let openai = null;
 let isRealAI = false;
 
 if (process.env.OPENAI_API_KEY) {
   openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   isRealAI = true;
-  console.log("🚀 Real AI Mode");
+  console.log("🚀 Real AI Mode Enabled");
 } else {
-  console.log("⚠ Demo Mode");
+  console.log("⚠ Running in Demo Mode");
 }
 
-// ===============================
-// Auth Routes
-// ===============================
+// ============================================
+// ROOT
+// ============================================
+
+app.get("/", (req, res) => {
+  res.send(`Bayojid AI Backend Running ✅ | Mode: ${isRealAI ? "Real" : "Demo"}`);
+});
+
+// ============================================
+// AUTH
+// ============================================
+
 app.post("/signup", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -67,9 +79,10 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// ===============================
-// Room System
-// ===============================
+// ============================================
+// ROOM SYSTEM
+// ============================================
+
 app.post("/create-room", async (req, res) => {
   const { roomId } = req.body;
   await db.collection("rooms").doc(roomId).set({
@@ -81,18 +94,22 @@ app.post("/create-room", async (req, res) => {
 app.post("/join-room", async (req, res) => {
   const { roomId } = req.body;
   const room = await db.collection("rooms").doc(roomId).get();
-  if (!room.exists) return res.status(404).json({ error: "Room not found" });
+
+  if (!room.exists)
+    return res.status(404).json({ error: "Room not found" });
+
   res.json({ success: true });
 });
 
-// ===============================
-// Chat System
-// ===============================
+// ============================================
+// CHAT SYSTEM
+// ============================================
+
 app.post("/chat", async (req, res) => {
   try {
     const { message, roomId } = req.body;
 
-    let reply = "";
+    let reply;
 
     if (isRealAI) {
       const completion = await openai.chat.completions.create({
@@ -104,11 +121,13 @@ app.post("/chat", async (req, res) => {
       reply = `Demo Mode Reply: "${message}"`;
     }
 
-    await db.collection("rooms").doc(roomId)
-      .collection("messages").add({
+    await db.collection("rooms")
+      .doc(roomId)
+      .collection("messages")
+      .add({
         user: message,
         ai: reply,
-        time: Date.now()
+        timestamp: Date.now()
       });
 
     res.json({ reply });
@@ -118,18 +137,26 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-// ===============================
-// Search
-// ===============================
+// ============================================
+// SEARCH HISTORY
+// ============================================
+
 app.get("/search", async (req, res) => {
   const { roomId, query } = req.query;
-  const snap = await db.collection("rooms").doc(roomId)
-    .collection("messages").get();
+
+  const snap = await db.collection("rooms")
+    .doc(roomId)
+    .collection("messages")
+    .get();
 
   let results = [];
+
   snap.forEach(doc => {
     const data = doc.data();
-    if (data.user.includes(query) || data.ai.includes(query)) {
+    if (
+      data.user?.includes(query) ||
+      data.ai?.includes(query)
+    ) {
       results.push(data);
     }
   });
@@ -137,30 +164,48 @@ app.get("/search", async (req, res) => {
   res.json({ results });
 });
 
-// ===============================
-// Typing Indicator
-// ===============================
+// ============================================
+// TYPING INDICATOR
+// ============================================
+
 app.post("/typing", async (req, res) => {
   const { roomId, user, status } = req.body;
-  await db.collection("rooms").doc(roomId)
-    .collection("typing").doc(user).set({ status });
+
+  await db.collection("rooms")
+    .doc(roomId)
+    .collection("typing")
+    .doc(user)
+    .set({ status });
+
   res.json({ success: true });
 });
 
-// ===============================
-// Video Signaling
-// ===============================
+// ============================================
+// VIDEO SIGNALING
+// ============================================
+
 app.post("/signal", async (req, res) => {
-  const { roomId, signal } = req.body;
-  await db.collection("rooms").doc(roomId)
-    .collection("signals").add(signal);
+  const { roomId, signalData } = req.body;
+
+  await db.collection("rooms")
+    .doc(roomId)
+    .collection("signals")
+    .add({
+      signalData,
+      timestamp: Date.now()
+    });
+
   res.json({ success: true });
 });
 
-// ===============================
-// Server Start
-// ===============================
+// ============================================
+// SERVER START
+// ============================================
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log(`🔥 Server running on ${PORT} | Mode: ${isRealAI ? "Real" : "Demo"}`)
-);
+
+app.listen(PORT, () => {
+  console.log(
+    `🔥 Server running on port ${PORT} | Mode: ${isRealAI ? "Real" : "Demo"}`
+  );
+});

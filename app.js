@@ -2,12 +2,13 @@
 
 // ==== Firebase Config ====
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBYpQsXTHmvq0bvBYF2zKUrxdMEDoEs7qw",
+  authDomain: "bayojidaichat.firebaseapp.com",
+  projectId: "bayojidaichat",
+  storageBucket: "bayojidaichat.firebasestorage.app",
+  messagingSenderId: "982053349033",
+  appId: "1:982053349033:web:b89d9c88b4516293bfebb8",
+  measurementId: "G-NHBRHRLRQR"
 };
 
 firebase.initializeApp(firebaseConfig);

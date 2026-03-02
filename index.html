@@ -18,7 +18,6 @@ body {
   height: 100vh;
 }
 
-/* Sidebar */
 .sidebar {
   width: 260px;
   background: #1e293b;
@@ -26,10 +25,6 @@ body {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-}
-
-.sidebar h3 {
-  margin-top: 0;
 }
 
 .sidebar input, .sidebar button {
@@ -46,11 +41,6 @@ body {
   cursor: pointer;
 }
 
-.sidebar button:hover {
-  background: #1d4ed8;
-}
-
-/* Main */
 .main {
   flex: 1;
   display: flex;
@@ -60,16 +50,12 @@ body {
 .header {
   padding: 15px;
   background: #1e293b;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .chat-box {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
-  background: #0f172a;
   display: flex;
   flex-direction: column;
 }
@@ -89,12 +75,6 @@ body {
 .ai {
   background: #334155;
   align-self: flex-start;
-}
-
-.typing-indicator {
-  font-size: 13px;
-  opacity: 0.7;
-  margin-bottom: 10px;
 }
 
 .chat-input-area {
@@ -119,32 +99,6 @@ body {
   color: white;
   cursor: pointer;
 }
-
-video {
-  width: 45%;
-  margin: 5px;
-  background: black;
-}
-
-/* Light mode */
-.light {
-  background: #f5f5f5;
-  color: black;
-}
-.light .sidebar,
-.light .header,
-.light .chat-input-area {
-  background: #e2e8f0;
-}
-.light .chat-box {
-  background: #f5f5f5;
-}
-.light .ai {
-  background: #cbd5e1;
-}
-.light .user {
-  background: #3b82f6;
-}
 </style>
 </head>
 
@@ -159,41 +113,13 @@ video {
     <input type="email" id="email" placeholder="Email">
     <input type="password" id="password" placeholder="Password">
 
-    <button id="signupBtn" onclick="signup()">Signup</button>
-    <button id="loginBtn" onclick="login()">Login</button>
-    <button id="logoutBtn" onclick="logout()">Logout</button>
+    <button onclick="signup()">Signup</button>
+    <button onclick="login()">Login</button>
+    <button onclick="logout()">Logout</button>
 
     <hr>
 
-    <button onclick="createRoom()">Create Room</button>
-    <input type="text" id="join-room-input" placeholder="Room ID">
-    <button onclick="joinRoom(document.getElementById('join-room-input').value)">
-      Join Room
-    </button>
-
-    <p id="current-room"></p>
     <p id="user-status">Not logged in</p>
-
-    <hr>
-
-    <!-- 🔎 Search History -->
-    <input type="text" id="search-input" placeholder="Search messages">
-    <button onclick="searchMessages()">Search</button>
-
-    <hr>
-
-    <!-- 🎥 Video Call -->
-    <button onclick="startCall()">Start Call</button>
-    <button onclick="joinCall()">Join Call</button>
-
-    <hr>
-
-    <!-- 👑 Admin Panel -->
-    <div id="admin-panel">
-      <h4>Admin Panel</h4>
-      <button onclick="promoteToAdmin()">Promote User</button>
-      <button onclick="removeAdmin()">Remove Admin</button>
-    </div>
 
     <hr>
 
@@ -209,20 +135,13 @@ video {
 
     <div class="chat-box" id="chat-box"></div>
 
-    <!-- Typing Indicator -->
-    <div id="typing-status" class="typing-indicator"></div>
-
     <div class="chat-input-area">
-      <input type="text" id="chat-input" placeholder="Type a message..."
-             oninput="setTyping(true)"
-             onblur="setTyping(false)">
-      <button id="sendBtn" onclick="sendMessage()">Send</button>
-    </div>
+      <input type="text"
+             id="chat-input"
+             placeholder="Type a message..."
+             onkeydown="if(event.key==='Enter'){sendMessage()}">
 
-    <!-- Video Area -->
-    <div style="display:flex; justify-content:center;">
-      <video id="localVideo" autoplay muted></video>
-      <video id="remoteVideo" autoplay></video>
+      <button onclick="sendMessage()">Send</button>
     </div>
 
   </div>
@@ -234,12 +153,8 @@ video {
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
-<!-- JS Files -->
-<script src="firebaseConfig.js"></script>
-<script src="index.js"></script>
-<script src="index_searchHistory.js"></script>
-<script src="index_typingIndicator.js"></script>
-<script src="index_videoSignaling.js"></script>
+<!-- Main Frontend Script -->
+<script src="app.js"></script>
 
 </body>
 </html>
